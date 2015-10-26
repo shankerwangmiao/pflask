@@ -56,7 +56,7 @@ void open_master_pty(int *master_fd, char **master_name) {
 	int rc;
 
 	rc = tcgetattr(STDIN_FILENO, &stdin_attr);
-	sys_fail_if(rc < 0, "tcgetattr()");
+	sys_fail_if(rc < 0, "open_master_pty(): tcgetattr()");
 
 	rc = ioctl(STDIN_FILENO, TIOCGWINSZ, &stdin_ws);
 	sys_fail_if(rc < 0, "ioctl(TIOCGWINSZ)");
@@ -128,7 +128,7 @@ void process_pty(int master_fd) {
 	if (signal_fd < 0) sysf_printf("signalfd()");
 
 	rc = tcgetattr(STDIN_FILENO, &stdin_attr);
-	sys_fail_if(rc < 0, "tcgetattr()");
+	sys_fail_if(rc < 0, "proecss_pty(): tcgetattr()");
 
 	cfmakeraw(&raw_attr);
 	raw_attr.c_lflag &= ~ECHO;

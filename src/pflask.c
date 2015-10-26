@@ -90,6 +90,8 @@ int main(int argc, char *argv[]) {
                           CLONE_NEWUTS;
 
 	struct gengetopt_args_info args;
+	
+	int have_tty=isatty(STDIN_FILENO);
 
 	if (cmdline_parser(argc, argv, &args) != 0)
 		return 1;
@@ -185,8 +187,8 @@ int main(int argc, char *argv[]) {
 		process_pty(master_fd);
 		return 0;
 	}
-
-	open_master_pty(&master_fd, &master);
+	if (have_tty)
+		open_master_pty(&master_fd, &master);
 
 	if (args.detach_flag)
 		do_daemonize();
@@ -212,8 +214,8 @@ int main(int argc, char *argv[]) {
 		sync_barrier_parent(sync, SYNC_START);
 
 		sync_close(sync);
-
-		open_slave_pty(master);
+		if (have_tty) 
+			open_slave_pty(master);
 
 		setup_user(args.user_arg);
 
@@ -285,7 +287,7 @@ int main(int argc, char *argv[]) {
 
 	sync_wait_child(sync, SYNC_START);
 
-	if (args.chroot_given && (clone_flags & CLONE_NEWUSER))
+	if (args.chroot_given && (clone_flags & CLONE_NEWUSER) && have_tty)
 		setup_console_owner(master, users);
 
 	setup_cgroup(cgroups, pid);
@@ -312,12 +314,15 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (args.detach_flag)
-		serve_pty(master_fd);
-	else
-		process_pty(master_fd);
+	if (have_tty){
+	
+		if (args.detach_flag)
+			serve_pty(master_fd);
+		else
+			process_pty(master_fd);
 
-	kill(pid, SIGKILL);
+		kill(pid, SIGKILL);
+	}
 
 	rc = waitid(P_PID, pid, &status, WEXITED);
 	sys_fail_if(rc < 0, "Error waiting for child");
