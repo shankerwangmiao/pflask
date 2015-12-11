@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
 
 	struct gengetopt_args_info args;
 	
-	int have_tty=isatty(STDIN_FILENO);
+	int have_tty=isatty(STDOUT_FILENO)&&isatty(STDIN_FILENO);
 
 	if (cmdline_parser(argc, argv, &args) != 0)
 		return 1;
@@ -116,8 +116,8 @@ int main(int argc, char *argv[]) {
 		clone_flags |= CLONE_NEWUSER;
 
 		if (user_get_uid_gid(args.user_arg, &uid, &gid)) {
-			user_add_map(&users, 'u', uid, uid, 1);
-			user_add_map(&users, 'g', gid, gid, 1);
+			user_add_map(&users, 'u', args.zero_flag ? 0 : uid, uid, 1);
+			user_add_map(&users, 'g', args.zero_flag ? 0 : gid, gid, 1);
 		}
 	}
 
@@ -179,7 +179,8 @@ int main(int argc, char *argv[]) {
 
 	if (args.no_pidns_flag)
 		clone_flags &= ~(CLONE_NEWPID);
-
+	if (args.no_pty_flag)
+		have_tty = 0;
 	if (args.attach_given) {
 		master_fd = recv_pty(args.attach_arg);
 		fail_if(master_fd < 0, "Invalid PID '%u'", args.attach_arg);
@@ -203,21 +204,21 @@ int main(int argc, char *argv[]) {
 	pid = do_clone(&clone_flags);
 
 	if (!pid) {
-		closep(&master_fd);
-
-		rc = prctl(PR_SET_PDEATHSIG, SIGKILL);
-		sys_fail_if(rc < 0, "prctl(PR_SET_PDEATHSIG)");
-
-		rc = setsid();
-		sys_fail_if(rc < 0, "setsid()");
-
+		if (have_tty){
+			closep(&master_fd);
+			rc = prctl(PR_SET_PDEATHSIG, SIGKILL);
+			sys_fail_if(rc < 0, "prctl(PR_SET_PDEATHSIG)");
+			rc = setsid();
+			sys_fail_if(rc < 0, "setsid()");
+		}
 		sync_barrier_parent(sync, SYNC_START);
 
 		sync_close(sync);
 		if (have_tty) 
 			open_slave_pty(master);
 
-		setup_user(args.user_arg);
+		if (!args.zero_flag)
+			setup_user(args.user_arg);
 
 		if (args.hostname_given) {
 			rc = sethostname(args.hostname_arg,
@@ -322,7 +323,8 @@ int main(int argc, char *argv[]) {
 			process_pty(master_fd);
 
 		kill(pid, SIGKILL);
-	}
+	}else{
+        }
 
 	rc = waitid(P_PID, pid, &status, WEXITED);
 	sys_fail_if(rc < 0, "Error waiting for child");

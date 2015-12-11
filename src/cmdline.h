@@ -109,6 +109,10 @@ struct gengetopt_args_info
   const char *no_pidns_help; /**< @brief Disable PID namespace support help description.  */
   int no_dev_flag;	/**< @brief Do not create nodes in /dev (default=off).  */
   const char *no_dev_help; /**< @brief Do not create nodes in /dev help description.  */
+  int zero_flag;	/**< @brief Change uid and gid to 0 (default=off).  */
+  const char *zero_help; /**< @brief Change uid and gid to 0 help description.  */
+  int no_pty_flag;	/**< @brief Disable pty handling (default=off).  */
+  const char *no_pty_help; /**< @brief Disable pty handling help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
@@ -134,6 +138,8 @@ struct gengetopt_args_info
   unsigned int no_utsns_given ;	/**< @brief Whether no-utsns was given.  */
   unsigned int no_pidns_given ;	/**< @brief Whether no-pidns was given.  */
   unsigned int no_dev_given ;	/**< @brief Whether no-dev was given.  */
+  unsigned int zero_given ;	/**< @brief Whether zero was given.  */
+  unsigned int no_pty_given ;	/**< @brief Whether no-pty was given.  */
 
 } ;
 

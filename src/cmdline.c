@@ -58,6 +58,8 @@ const char *gengetopt_args_info_help[] = {
   "  -H, --no-utsns         Disable UTS namespace support  (default=off)",
   "  -P, --no-pidns         Disable PID namespace support  (default=off)",
   "  -D, --no-dev           Do not create nodes in /dev  (default=off)",
+  "  -Z, --zero             Change uid and gid to 0  (default=off)",
+  "  -Y, --no-pty           Disable pty handling  (default=off)",
     0
 };
 
@@ -109,6 +111,8 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->no_utsns_given = 0 ;
   args_info->no_pidns_given = 0 ;
   args_info->no_dev_given = 0 ;
+  args_info->zero_given = 0 ;
+  args_info->no_pty_given = 0 ;
 }
 
 static
@@ -148,6 +152,8 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->no_utsns_flag = 0;
   args_info->no_pidns_flag = 0;
   args_info->no_dev_flag = 0;
+  args_info->zero_flag = 0;
+  args_info->no_pty_flag = 0;
   
 }
 
@@ -194,6 +200,8 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->no_utsns_help = gengetopt_args_info_help[21] ;
   args_info->no_pidns_help = gengetopt_args_info_help[22] ;
   args_info->no_dev_help = gengetopt_args_info_help[23] ;
+  args_info->zero_help = gengetopt_args_info_help[24] ;
+  args_info->no_pty_help = gengetopt_args_info_help[25] ;
   
 }
 
@@ -417,6 +425,10 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "no-pidns", 0, 0 );
   if (args_info->no_dev_given)
     write_into_file(outfile, "no-dev", 0, 0 );
+  if (args_info->zero_given)
+    write_into_file(outfile, "zero", 0, 0 );
+  if (args_info->no_pty_given)
+    write_into_file(outfile, "no-pty", 0, 0 );
   
 
   i = EXIT_SUCCESS;
@@ -1017,10 +1029,12 @@ cmdline_parser_internal (
         { "no-utsns",	0, NULL, 'H' },
         { "no-pidns",	0, NULL, 'P' },
         { "no-dev",	0, NULL, 'D' },
+        { "zero",	0, NULL, 'Z' },
+        { "no-pty",	0, NULL, 'Y' },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVr:c:t:m:n::E:u:e:wg:b:da:s:kUMNIHPD", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVr:c:t:m:n::E:u:e:wg:b:da:s:kUMNIHPDZY", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -1255,6 +1269,26 @@ cmdline_parser_internal (
           if (update_arg((void *)&(args_info->no_dev_flag), 0, &(args_info->no_dev_given),
               &(local_args_info.no_dev_given), optarg, 0, 0, ARG_FLAG,
               check_ambiguity, override, 1, 0, "no-dev", 'D',
+              additional_error))
+            goto failure;
+        
+          break;
+        case 'Z':	/* Change uid and gid to 0.  */
+        
+        
+          if (update_arg((void *)&(args_info->zero_flag), 0, &(args_info->zero_given),
+              &(local_args_info.zero_given), optarg, 0, 0, ARG_FLAG,
+              check_ambiguity, override, 1, 0, "zero", 'Z',
+              additional_error))
+            goto failure;
+        
+          break;
+        case 'Y':	/* Disable pty handling.  */
+        
+        
+          if (update_arg((void *)&(args_info->no_pty_flag), 0, &(args_info->no_pty_given),
+              &(local_args_info.no_pty_given), optarg, 0, 0, ARG_FLAG,
+              check_ambiguity, override, 1, 0, "no-pty", 'Y',
               additional_error))
             goto failure;
         

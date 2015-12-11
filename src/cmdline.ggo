@@ -46,3 +46,7 @@ option "no-pidns"   P "Disable PID namespace support"
        flag off
 option "no-dev"     D "Do not create nodes in /dev"
        flag off
+option "zero"       Z "Change uid and gid to 0"
+	flag off
+option "no-pty"     Y "Disable pty handling"
+        flag off

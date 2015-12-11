@@ -74,10 +74,10 @@ void setup_user_map2(struct user *users, char type, pid_t pid) {
 
 	_free_ char *map = strdup("");
 
-	_free_ char *have_cmd = on_path("newuidmap", NULL);
-
-	if (!have_cmd && geteuid() != 0)
-		fail_printf("Unprivileged containers need the newuidmap/newgidmap executables");
+//	_free_ char *have_cmd = on_path("newuidmap", NULL);
+        bool have_cmd = 0;
+//	if (!have_cmd && geteuid() != 0)
+//		fail_printf("Unprivileged containers need the newuidmap/newgidmap executables");
 
 	DL_FOREACH(users, i) {
 		char *tmp = NULL;
@@ -94,18 +94,19 @@ void setup_user_map2(struct user *users, char type, pid_t pid) {
 		map = tmp;
 	}
 
-	if (have_cmd != NULL) {
-		_free_ char *cmd = NULL;
+//	if (have_cmd != NULL) {
+//		_free_ char *cmd = NULL;
 
-		rc = asprintf(&map, "new%cidmap %u %s", type, pid, map);
-		fail_if(rc < 0, "OOM");
+//		rc = asprintf(&map, "new%cidmap %u %s", type, pid, map);
+//		fail_if(rc < 0, "OOM");
 
-		rc = system(map);
-		fail_if(rc != 0, "new%cidmap returned %d", type, rc);
-	} else {
+//		rc = system(map);
+//		fail_if(rc != 0, "new%cidmap returned %d", type, rc);
+//	} else {
 		_close_ int map_fd = -1;
 
 		_free_ char *map_file = NULL;
+
 
 		rc = asprintf(&map_file, "/proc/%d/%cid_map", pid, type);
 		fail_if(rc < 0, "OOM");
@@ -114,8 +115,26 @@ void setup_user_map2(struct user *users, char type, pid_t pid) {
 		sys_fail_if(map_fd < 0, "Error opening file '%s'", map_file);
 
 		rc = write(map_fd, map, strlen(map));
+		if(type == 'g' && rc < 0){
+			debug_printf("Error writing to file '%s', trying to recover: %s", map_file, strerror(errno));
+			_free_ char *setgroups_file = NULL;
+			_close_ int grp_fd = -1;
+			rc = asprintf(&setgroups_file, "/proc/%ld/setgroups", (long) pid);
+			fail_if(rc < 0, "OOM");
+
+			grp_fd = open(setgroups_file, O_RDWR);
+			if (grp_fd == -1){
+				sys_fail_if(errno != ENOENT, "Error opening file '%s'", setgroups_file);
+				fail_if(0, "File '%s' doesn't exist, no way to recover", setgroups_file);
+			}else{
+				char *str_deny = "deny";
+				rc = write(grp_fd, str_deny, strlen(str_deny));
+				sys_fail_if(rc < 0, "Error writing to file '%s', no way to recover", setgroups_file);
+			}
+			rc = write(map_fd, map, strlen(map));
+		}
 		sys_fail_if(rc < 0, "Error writing to file '%s'", map_file);
-	}
+//	}
 }
 
 void setup_user_map(struct user *users, pid_t pid) {
@@ -139,7 +158,9 @@ void setup_user(const char *user) {
 	sys_fail_if(rc < 0, "Error setting UID");
 
 	rc = setgroups(0, NULL);
-	sys_fail_if(rc < 0, "Error setting groups");
+	if (rc < 0){
+		debug_printf("Error setting groups: %s", strerror(errno));
+	}
 }
 
 bool user_get_mapped_root(struct user *users, char type, unsigned *id) {
